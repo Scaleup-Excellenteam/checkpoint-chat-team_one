@@ -7,10 +7,13 @@ services:
     volumes:
       - .:/app
     ports:
-      - "3000:3000"
+      - $
     command: npm start
 
   backend:
     image: mongo
     ports:
-      - "27017:27017"
+      - $BACK_END_PORT:$BACK_END_PORT
+    volumes:
+      - ./data/db:/data/db
+    environment:
