@@ -1,0 +1,28 @@
+# A human-readable name for your workflow
+name: Greet Everyone
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push events for the "structure" branch
+  push:
+    branches: [ "structure" ]
+  # Also triggers on pull requests to the "structure" branch
+  pull_request:
+    branches: [ "structure" ]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # The name of our job. You can name this anything.
+  greeting_job:
+    # The type of virtual machine to run the job on. "ubuntu-latest" is a great default.
+    runs-on: ubuntu-latest
+
+    # A sequence of tasks that will be executed as part of the job
+    steps:
+      # This is a pre-built action that checks out your repository's code
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      # This is a simple command-line step
+      - name: Run a one-line script
+        run: echo "GitHub Action is Running 🎉"

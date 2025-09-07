@@ -1,16 +1,29 @@
 version: '3.8'
 
 services:
-  web:
-    image: node:14
-    working_dir: /app
-    volumes:
-      - .:/app
+  frontend:
+    # Build the frontend image from its Dockerfile
+    build:
+      context: . # Or ./frontend if your Dockerfile is in a subdirectory
+    container_name: frontend-app
+    # Set environment variables, useful for connecting to the backend
+    environment:
+      - DB_HOST=backend
+      - DB_PORT=27017
     ports:
-      - "3000:3000"
-    command: npm start
+      # Map host port to container port (assuming your app runs on 3000)
+      - "${FRONT_END_PORT}:3000"
+    depends_on:
+      - backend
 
-  db:
-    image: mongo
+  backend:
+    image: mongo:latest
+    container_name: backend-db
     ports:
-      - "27017:27017"
+      # Map host port to MongoDB's default port inside the container
+      - "${BACK_END_PORT}:27017"
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  mongo_data: # Define a named volume for data persistence
