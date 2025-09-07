@@ -3,10 +3,22 @@
 
 
 
-# stack
-- Node.js
-- Express.js
+# stack 
+
+
+## frontend - React 
+- typeScript
+- React
+- 
+
+
+## backend - Node.js
+- Express
 - MongoDB
-- vanilla JS
-- HTML/CSS
-- Docker
+- Mongoose
+- Socket.io
+
+# QA 
+- Jest
+- Supertest
+- Cypress 

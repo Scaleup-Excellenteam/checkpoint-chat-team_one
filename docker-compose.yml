@@ -7,13 +7,14 @@ services:
     volumes:
       - .:/app
     ports:
-      - $FRONT_END_PORT:$FRONT_END_PORT
+      - ${FRONT_END_PORT}:${FRONT_END_PORT}
     command: npm start
-
+    depends_on:
+      - backend
   backend:
     image: mongo
     ports:
-      - $BACK_END_PORT:$BACK_END_PORT
+      - ${BACK_END_PORT}:${BACK_END_PORT}
     volumes:
       - ./data/db:/data/db
     environment:
