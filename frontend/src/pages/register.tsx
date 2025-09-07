@@ -33,7 +33,7 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       const payload: RegisterRequest = {
-        name: values.name,
+        username: values.name,
         email: values.email,
         password: values.password,
       };

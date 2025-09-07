@@ -3,11 +3,12 @@
   "version": "1.0.0",
   "main": "src/app.ts",
   "scripts": {
-  "dev": "ts-node src/app.ts",
-  "start" : "node dist/app.js",
-  "build": "tsc"
+    "dev": "ts-node src/app.ts",
+    "start": "node dist/app.js",
+    "build": "tsc"
   },
   "dependencies": {
+    "cors": "^2.8.5",
     "express": "^5.1.0",
     "mongoose": "^8.18.0",
     "ws": "^8.18.3"

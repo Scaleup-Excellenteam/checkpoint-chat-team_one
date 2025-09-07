@@ -27,8 +27,8 @@ export default function LoginPage() {
   async function onSubmit(values: FormData) {
     setServerError(null);
     try {
-      const res = await login(values as LoginRequest);
-      doLogin(res);
+      const response = await login(values as LoginRequest);
+      doLogin(response.user);
       navigate("/", { replace: true }); // go to homepage after login
     } catch (e: any) {
       setServerError(e?.response?.data?.message || "Login failed");

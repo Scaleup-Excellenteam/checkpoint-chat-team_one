@@ -10,7 +10,7 @@ RUN npm install
 COPY . .
 
 # Expose the port your backend runs on (e.g., 5000)
-EXPOSE 8000
+EXPOSE 5000
 
 # Command to start the server
 CMD ["npm", "start"]

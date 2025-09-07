@@ -1,15 +1,15 @@
-import { Schema, model, Document, Types } from 'mongoose';
+import { Schema, model, Document } from 'mongoose';
 
 export interface IMessage extends Document {
-  room: Types.ObjectId;
-  user: Types.ObjectId;
+  room: string; // room name
+  user: string; // username
   content: string;
   createdAt: Date;
 }
 
 const MessageSchema = new Schema<IMessage>({
-  room: { type: Schema.Types.ObjectId, ref: 'Room', required: true },
-  user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  room: { type: String, required: true },
+  user: { type: String, required: true },
   content: { type: String, required: true },
   createdAt: { type: Date, default: Date.now },
 });

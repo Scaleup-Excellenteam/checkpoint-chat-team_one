@@ -1,7 +1,7 @@
 import axios from "axios";
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? "http://localhost:3000/api",
+  baseURL: import.meta.env.VITE_API_URL ?? "http://localhost:3000/",
 });
 
 
@@ -13,21 +13,21 @@ api.interceptors.request.use((config) => {
 });
 
 export type LoginRequest = { email: string; password: string };
-export type User = { id: string; name: string; email: string };
-export type LoginResponse = { token: string; user: User };
+export type User = { _id: string; username: string; email: string };
+export type LoginResponse = { message: string; user: User };
 
 export async function login(req: LoginRequest): Promise<LoginResponse> {
-  const { data } = await api.post<LoginResponse>("/auth/login", req);
+  const { data } = await api.post<LoginResponse>("/login", req);
   return data;
 }
 
 
 // ---- REGISTER ----
-export type RegisterRequest = { name: string; email: string; password: string };
+export type RegisterRequest = { username: string; email: string; password: string };
 export type RegisterResponse = { user: User; token?: string; message?: string };
 
 export async function register(req: RegisterRequest): Promise<RegisterResponse> {
-  const { data } = await api.post<RegisterResponse>("/auth/register", req);
+  const { data } = await api.post<RegisterResponse>("/register", req);
   return data;
 }
 
