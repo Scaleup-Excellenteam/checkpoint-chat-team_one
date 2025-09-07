@@ -7,7 +7,7 @@ services:
     volumes:
       - .:/app
     ports:
-      - $
+      - $FRONT_END_PORT:$FRONT_END_PORT
     command: npm start
 
   backend:
