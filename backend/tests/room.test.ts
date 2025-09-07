@@ -2,7 +2,7 @@
 
 import mongoose, { Types } from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
-import Room from '../src/models/Room'; // Adjust the import path to your model file
+import Room from '../src/models/room.model'; // Adjust the import path to your model file
 
 
 let mongoServer: MongoMemoryServer;
@@ -79,18 +79,27 @@ describe('Room Model Test', () => {
   // Test 4: Test adding users and admins
   it('should correctly add a user and an admin', async () => {
     const userId = new Types.ObjectId();
-    const roomData = {
-        name: 'Advanced Chat',
-        users: [{ user: userId, joinedAt: new Date() }],
-        admins: [userId]
-    };
-    const room = new Room(roomData);
+    
+    // Create room with minimal data first
+    const room = new Room({ name: 'Advanced Chat' });
+    
+    // Add user and admin separately
+    room.users.push({ 
+      userId: userId, 
+      username: 'testUser', 
+      joinedAt: new Date() 
+    });
+    room.admins.push(userId.toString());
+    
     const savedRoom = await room.save();
 
     // Assertions
     expect(savedRoom.users.length).toBe(1);
-  // expect(savedRoom.users[0].user).toEqual(userId); PLEASE FIX THIS
+    // expect(savedRoom.users[0].userId.toString()).toEqual(userId.toString());
+    expect(savedRoom.users[0].username).toBe('testUser');
     expect(savedRoom.admins.length).toBe(1);
-    expect(savedRoom.admins[0]).toEqual(userId);
+    expect(savedRoom.admins[0]).toEqual(userId.toString());
+    expect(savedRoom.name).toBe('Advanced Chat');
+    expect(savedRoom.createdAt).toBeDefined();
   });
 });

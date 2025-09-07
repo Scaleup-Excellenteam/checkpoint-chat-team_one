@@ -1,6 +1,7 @@
 import { Schema, model, Document } from 'mongoose';
 
 export interface IUserInRoom {
+  userId: any;
   username: string;
   joinedAt: Date;
 }

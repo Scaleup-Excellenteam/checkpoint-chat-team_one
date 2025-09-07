@@ -2,7 +2,7 @@
 
 import mongoose, { Types } from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
-import Message from '../src/models/Message'; // Adjust the import path
+import Message from '../src/models/message.model'; // Adjust the import path
 
 let mongoServer: MongoMemoryServer;
 
@@ -40,8 +40,8 @@ describe('Message Model Test', () => {
 
     // Assertions
     expect(savedMessage._id).toBeDefined();
-    expect(savedMessage.room).toEqual(messageData.room);
-    expect(savedMessage.user).toEqual(messageData.user);
+    expect(savedMessage.room.toString()).toBe(messageData.room.toString());
+    expect(savedMessage.user.toString()).toBe(messageData.user.toString());
     expect(savedMessage.content).toBe(messageData.content);
     expect(savedMessage.createdAt).toBeDefined();
   });

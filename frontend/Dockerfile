@@ -1,4 +1,4 @@
-FROM node:14
+FROM node:18
 
 WORKDIR /app
 
@@ -10,7 +10,7 @@ RUN npm install
 COPY . .
 
 # Expose the port your app runs on
-EXPOSE 3000
+EXPOSE ${FRONT_END_PORT}
 
 # The command to run your app
 CMD ["npm", "start"]

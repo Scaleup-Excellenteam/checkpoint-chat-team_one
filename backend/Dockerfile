@@ -1,4 +1,4 @@
-FROM node:16
+FROM node:18
 
 WORKDIR /app
 
@@ -10,7 +10,7 @@ RUN npm install
 COPY . .
 
 # Expose the port your backend runs on (e.g., 5000)
-EXPOSE 5000
+EXPOSE ${BACK_END_PORT}
 
 # Command to start the server
 CMD ["npm", "start"]

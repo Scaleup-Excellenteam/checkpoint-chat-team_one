@@ -8,10 +8,11 @@ services:
     container_name: frontend-app
     # Set environment variables, useful for connecting to the backend
     environment:
-      - VITE_API_URL=http://localhost:${BACK_END_PORT:-3000}/api
+      # The frontend in the browser will call the backend exposed on host port 5000
+      - VITE_API_URL=http://localhost:${BACK_END_PORT:-5000}/api
     ports:
-      # Map host port to container port (assuming your app runs on 3000)
-      - "${FRONT_END_PORT:-5173}:5173" # Vite's default port is 5173
+      # Map host port 3000 to the frontend container's port 3000
+      - "${FRONT_END_PORT:-3000}:3000"
     depends_on:
       - backend
     volumes:
@@ -24,9 +25,10 @@ services:
       context: ./backend
     container_name: backend-app
     ports:
-      # Map host port to Express app port inside the container
-      - "${BACK_END_PORT:-3000}:3000" # Express app port
-      - "8080:8080" # WebSocket port
+      # Map host port 5000 to the backend container's port 3000
+      - "${BACK_END_PORT:-5000}:3000"
+      # WebSocket server port mapping
+      - "${WS_PORT:-8080}:8080"
     # Set environment variables for the backend
     environment:
       - MONGO_URI=mongodb://mongodb:27017/chat-app

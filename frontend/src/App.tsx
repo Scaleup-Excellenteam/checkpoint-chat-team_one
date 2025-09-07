@@ -2,10 +2,9 @@
 import "./App.css";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
-import ProtectedRoute from "./components/ProtectedRoute";
-import LoginPage from "./pages/login";
-import RegisterPage from "./pages/register";
-import HomePage from "./pages/homepage";
+import LoginPage from "./pages/Login";
+import RegisterPage from "./pages/Register";
+import HomePage from "./pages/HomePage";
 
 export default function App() {
   return (
