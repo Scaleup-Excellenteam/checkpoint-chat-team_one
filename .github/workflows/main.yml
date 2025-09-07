@@ -15,7 +15,7 @@ jobs:
   # The name of our job. You can name this anything.
   greeting_job:
     # The type of virtual machine to run the job on. "ubuntu-latest" is a great default.
-    runs-on: alpine-latest
+    runs-on: ubuntu-latest
 
     # A sequence of tasks that will be executed as part of the job
     steps:
