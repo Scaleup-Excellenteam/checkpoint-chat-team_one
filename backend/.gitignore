@@ -17,3 +17,12 @@ Thumbs.db
 # IDE files
 .vscode/
 .idea/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.swp
+
+# Coverage reports
+coverage/

@@ -1,0 +1,40 @@
+name: Test Backend
+
+on:
+  push:
+    branches: [ "**" ]
+    paths:
+      - 'backend/**'
+  pull_request:
+    branches: [ "**" ]
+    paths:
+      - 'backend/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./backend
+
+    strategy:
+      matrix:
+        node-version: [14.x]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: backend/package-lock.json
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Run tests
+      run:
