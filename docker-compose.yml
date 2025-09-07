@@ -4,24 +4,44 @@ services:
   frontend:
     # Build the frontend image from its Dockerfile
     build:
-      context: . # Or ./frontend if your Dockerfile is in a subdirectory
+      context: ./frontend
     container_name: frontend-app
     # Set environment variables, useful for connecting to the backend
     environment:
-      - DB_HOST=backend
-      - DB_PORT=27017
+      - VITE_API_URL=http://localhost:${BACK_END_PORT:-3000}/api
     ports:
       # Map host port to container port (assuming your app runs on 3000)
-      - "${FRONT_END_PORT}:3000"
+      - "${FRONT_END_PORT:-5173}:5173" # Vite's default port is 5173
     depends_on:
       - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
 
   backend:
+    # Build the backend image from its Dockerfile
+    build:
+      context: ./backend
+    container_name: backend-app
+    ports:
+      # Map host port to Express app port inside the container
+      - "${BACK_END_PORT:-3000}:3000" # Express app port
+      - "8080:8080" # WebSocket port
+    # Set environment variables for the backend
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017/chat-app
+    depends_on:
+      - mongodb
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+  mongodb:
     image: mongo:latest
     container_name: backend-db
     ports:
       # Map host port to MongoDB's default port inside the container
-      - "${BACK_END_PORT}:27017"
+      - "27017:27017"
     volumes:
       - mongo_data:/data/db
 
