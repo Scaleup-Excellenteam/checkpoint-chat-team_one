@@ -63,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     
     try {
-      const response = await fetch(`${clientEnv.VITE_API_URL}/register`, {
+      const response = await fetch(`http://localhost:5000/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
