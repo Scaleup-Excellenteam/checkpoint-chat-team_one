@@ -2,13 +2,20 @@
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { getWebSocket, closeWebSocket, sendWebSocketMessage } from '../lib/websocket';
+import { 
+  connectWebSocket, 
+  disconnectWebSocket, 
+  sendWebSocketMessage, 
+  addMessageHandler, 
+  removeMessageHandler,
+  isConnected
+} from '../lib/websocket';
 
 interface Message {
-  type: string;
-  username: string;
+  _id?: string;
   content: string;
-  timestamp: string;
+  username: string;
+  timestamp: string | Date;
   room?: string;
 }
 
@@ -16,195 +23,156 @@ export default function HomePage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const bottomRef = useRef<HTMLDivElement>(null);
+  const cleanupTimerRef = useRef<number | null>(null);
   
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(true); // Start loading
-  const [roomJoined, setRoomJoined] = useState(false);
-  const [messageQueue, setMessageQueue] = useState<string[]>([]);
-  const [connectionAttempts, setConnectionAttempts] = useState(0);
+  const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
+  const [error, setError] = useState<string>("");
   
-  // AUTO-RESET LOADING STATE AFTER 5 SECONDS AS SAFETY MEASURE
-  useEffect(() => {
-    if (loading) {
-      const timer = setTimeout(() => {
-        console.log("⚠️ Safety timeout: Resetting loading state");
-        setLoading(false);
-      }, 5000);
-      return () => clearTimeout(timer);
+  // Single connection attempt tracker
+  const connectionAttemptRef = useRef(false);
+  
+  // Message handler for WebSocket
+  const handleWebSocketMessage = useRef((data: any) => {
+    console.log("📨 HomePage received message:", data);
+    switch (data.type) {
+      case 'message':
+        setMessages(prev => [...prev, {
+          content: data.content,
+          username: data.username,
+          timestamp: data.timestamp || new Date().toISOString(),
+          _id: data._id || `msg-${Date.now()}-${Math.random()}`
+        }]);
+        break;
+      case 'join':
+        setConnectionStatus('connected');
+        setError("");
+        break;
+      case 'user_joined':
+        setMessages(prev => [...prev, {
+          content: `${data.username} joined the chat`,
+          username: 'System',
+          timestamp: data.timestamp || new Date().toISOString(),
+          _id: `system-${Date.now()}`
+        }]);
+        break;
+      case 'user_left':
+        setMessages(prev => [...prev, {
+          content: `${data.username} left the chat`,
+          username: 'System',
+          timestamp: data.timestamp || new Date().toISOString(),
+          _id: `system-${Date.now()}`
+        }]);
+        break;
+      case 'error':
+        setError(data.content || data.message || "WebSocket error");
+        break;
+      default:
+        console.log("🤷 Unhandled WS type:", data.type);
+        break;
     }
-  }, [loading]);
+  });
   
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // WebSocket connection setup
+  // Single WebSocket connection setup
   useEffect(() => {
-    console.log('🔄 HomePage useEffect triggered');
-    console.log('🔄 User:', user);
-    console.log('🔄 User username:', user?.username);
-    
     if (!user?.username) {
-      console.log('❌ No user username, skipping WebSocket connection');
+      navigate('/login', { replace: true });
       return;
     }
-    
-    console.log('✅ Attempting to create WebSocket connection...');
-    
-    // Increment connection attempts
-    setConnectionAttempts(prev => prev + 1);
-    console.log(`🔄 Connection attempt #${connectionAttempts + 1}`);
-    
-    getWebSocket({
-      onOpen: () => {
-        console.log("✅ WebSocket connected in HomePage");
-        
-        // IMPORTANT: Don't set loading=false here, wait for room join confirmation
-        
-        // Try to join the room
-        console.log(`🚪 Attempting to join room as ${user.username}`);
-        sendWebSocketMessage({
-          type: 'join',
-          username: user.username,
-          room: "general"
-        });
-        
-        // Safety timeout for room join
-        setTimeout(() => {
-          if (!roomJoined) {
-            console.log("⚠️ Room join timeout - forcing retry");
-            setLoading(false);
-            sendWebSocketMessage({
-              type: 'join',
-              username: user.username,
-              room: "general"
-            });
-          }
-        }, 3000);
-      },
-      
-      onMessage: (data) => {
-        console.log("📨 Received:", data);
-        
-        if (data.type === "message") {
-          console.log("💬 Chat message received");
-          const newMessage: Message = {
-            type: data.type,
-            username: data.username || "Unknown",
-            content: data.content || "",
-            timestamp: data.timestamp || new Date().toISOString()
-          };
-          
-          setMessages(prev => [...prev, newMessage]);
-        } 
-        else if (data.type === "system") {
-          console.log("🔔 System message:", data.message);
-          
-          // IMPORTANT: THIS IS WHERE WE CONFIRM ROOM JOIN
-          if (data.message?.includes("Joined room")) {
-            console.log("✅ Room joined successfully");
-            setRoomJoined(true);
-            setLoading(false);
-          }
-        }
-        else if (data.type === "connected") {
-          console.log("🔌 Connected message received");
-          // Some servers send a confirmation on connect
-          // We don't set roomJoined here, but we ensure loading is reset
-          setLoading(false);
-        }
-        else if (data.type === "error") {
-          console.error("❌ Error:", data.message);
-          // Always reset loading on error
-          setLoading(false);
-          
-          if (data.message === "Join a room first") {
-            console.log("🔄 Retry joining room");
-            sendWebSocketMessage({
-              type: 'join',
-              username: user.username,
-              room: "general"
-            });
-          }
-        }
-      },
-      
-      onError: (event) => {
-        console.error("❌ WebSocket error", event);
-        // Always reset loading on error
-        setLoading(false);
-        setRoomJoined(false);
-      },
-      
-      onClose: () => {
-        console.log("🔌 WebSocket closed");
-        // Always reset loading on close
-        setLoading(false);
-        setRoomJoined(false);
-      }
+
+    // Cancel any pending strict-mode cleanup timer
+    cleanupTimerRef.current && clearTimeout(cleanupTimerRef.current);
+
+    if (connectionAttemptRef.current) return;
+    connectionAttemptRef.current = true;
+    setConnectionStatus('connecting');
+    setError("");
+
+    addMessageHandler(handleWebSocketMessage.current);
+
+    connectWebSocket(
+      user.username,
+      () => { setConnectionStatus('disconnected'); connectionAttemptRef.current = false; },
+      () => { setConnectionStatus('disconnected'); connectionAttemptRef.current = false; }
+    ).then(() => {
+      // connected -> wait for 'join' to mark as connected
+    }).catch(() => {
+      setConnectionStatus('disconnected');
     });
-    
-    return () => closeWebSocket();
-  }, [user?.username, connectionAttempts]); // Add connectionAttempts to retry on failure
-  
-  // Process queued messages when room is joined
-  useEffect(() => {
-    if (roomJoined && messageQueue.length > 0) {
-      console.log("📤 Sending queued messages:", messageQueue);
-      
-      messageQueue.forEach(content => {
-        sendWebSocketMessage({
-          type: 'message',
-          content
-        });
-      });
-      
-      setMessageQueue([]);
-    }
-  }, [roomJoined, messageQueue]);
-  
+
+    // Defer cleanup to avoid StrictMode immediate disconnect
+    return () => {
+      cleanupTimerRef.current = window.setTimeout(() => {
+        removeMessageHandler(handleWebSocketMessage.current);
+        disconnectWebSocket();
+        connectionAttemptRef.current = false;
+      }, 300);
+    };
+  }, [user?.username, navigate]);
+
   // Manual reconnect function
   const handleReconnect = () => {
-    setLoading(true);
-    setConnectionAttempts(prev => prev + 1); // This will trigger the useEffect
+    setError("");
+    connectionAttemptRef.current = false;
+    setConnectionStatus('disconnected');
+    disconnectWebSocket();
+    // The useEffect will handle reconnection when connectionAttemptRef becomes false
   };
   
   // Send a message
   const sendMessage = (content: string) => {
-    if (!content.trim()) return;
-    
-    if (!roomJoined) {
-      console.log("🚫 Room not joined, queuing message");
-      setMessageQueue(prev => [...prev, content]);
-      
-      if (user?.username) {
-        sendWebSocketMessage({
-          type: 'join',
-          username: user.username,
-          room: "general"
-        });
-      }
+    if (!content.trim()) {
+      console.log("❌ Cannot send empty message");
       return;
     }
     
-    console.log("📤 Sending message:", content);
-    setLoading(true);
+    if (!isConnected()) {
+      console.log("❌ Not connected, cannot send message");
+      setError("Not connected to chat server");
+      return;
+    }
     
-    sendWebSocketMessage({
+    console.log("📤 Preparing to send message:", content);
+    
+    const messageData = {
       type: 'message',
-      content
-    });
+      content: content.trim()
+    };
     
-    // Ensure spinner doesn't stay forever
-    setTimeout(() => setLoading(false), 1000);
+    console.log("📤 Sending message data:", messageData);
+    
+    const success = sendWebSocketMessage(messageData);
+    
+    if (!success) {
+      console.error("❌ Failed to send message");
+      setError("Failed to send message");
+    } else {
+      console.log("✅ Message sent successfully");
+    }
   };
   
   // Handle form submission
   const handleSend = (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!input.trim() || loading) return;
+    console.log("📝 Form submitted with input:", input);
+    console.log("📊 Connection status:", connectionStatus);
+    console.log("📊 Is connected:", isConnected());
+    
+    if (!input.trim()) {
+      console.log("❌ Input is empty");
+      return;
+    }
+    
+    if (connectionStatus !== 'connected') {
+      console.log("❌ Not connected, status:", connectionStatus);
+      return;
+    }
     
     sendMessage(input);
     setInput("");
@@ -212,25 +180,15 @@ export default function HomePage() {
   
   // Handle logout
   const handleLogout = () => {
+    disconnectWebSocket();
     logout();
     navigate("/login", { replace: true });
   };
-  
-  // Add extensive auth debugging
-  console.log('🔍 HomePage - Auth State Debug:');
-  console.log('🔍 User object:', user);
-  console.log('🔍 User type:', typeof user);
-  console.log('🔍 User keys:', user ? Object.keys(user) : 'null');
-  console.log('🔍 Is user truthy?', !!user);
-  
-  // Also check if you should redirect to login
-  useEffect(() => {
-    if (!user) {
-      console.log('🚨 No user found, should redirect to login');
-      // Uncomment the next line if you want automatic redirect
-      // navigate('/login', { replace: true });
-    }
-  }, [user, navigate]);
+
+  // Debug info
+  console.log("🔍 HomePage render - Connection status:", connectionStatus);
+  console.log("🔍 HomePage render - Messages count:", messages.length);
+  console.log("🔍 HomePage render - Current input:", input);
 
   return (
     <main className="container py-4">
@@ -240,7 +198,7 @@ export default function HomePage() {
           <button 
             className="btn btn-outline-secondary btn-sm me-2" 
             onClick={handleReconnect} 
-            disabled={loading}
+            disabled={connectionStatus === 'connecting'}
           >
             🔄 Reconnect
           </button>
@@ -250,35 +208,53 @@ export default function HomePage() {
         </div>
       </div>
       
+      {error && (
+        <div className="alert alert-danger">
+          {error}
+          <button 
+            className="btn btn-sm btn-outline-primary ms-2"
+            onClick={handleReconnect}
+          >
+            Try Again
+          </button>
+        </div>
+      )}
+      
       <div className="card shadow-sm">
         <div className="card-header d-flex justify-content-between align-items-center">
           <strong>Chat Room: general</strong>
-          <span className={`badge ${roomJoined ? "bg-success" : loading ? "bg-warning" : "bg-danger"}`}>
-            {roomJoined ? "Connected" : loading ? "Connecting..." : "Disconnected"}
+          <span className={`badge ${
+            connectionStatus === 'connected' ? "bg-success" : 
+            connectionStatus === 'connecting' ? "bg-warning" : "bg-danger"
+          }`}>
+            {connectionStatus === 'connected' ? "Connected" : 
+             connectionStatus === 'connecting' ? "Connecting..." : "Disconnected"}
           </span>
         </div>
         
         <div className="card-body" style={{ height: "400px", overflowY: "auto" }}>
           {messages.length === 0 ? (
             <div className="text-center text-muted py-5">
-              {loading ? "Connecting..." : roomJoined ? "No messages yet" : "Not connected to chat"}
+              {connectionStatus === 'connecting' ? "Connecting..." : 
+               connectionStatus === 'connected' ? "No messages yet. Start the conversation!" : "Not connected to chat"}
             </div>
           ) : (
             messages.map((msg, index) => (
-              <div key={index} className={`mb-3 ${msg.username === user?.username ? 'text-end' : ''}`}>
+              <div key={msg._id || index} className={`mb-3 ${msg.username === user?.username ? 'text-end' : ''}`}>
                 <div 
                   className={`d-inline-block p-2 rounded-3 ${
+                    msg.username === 'System' ? 'bg-secondary text-white' :
                     msg.username === user?.username 
                       ? 'bg-primary text-white' 
                       : 'bg-light'
                   }`}
                   style={{ maxWidth: "75%" }}
                 >
-                  {msg.username !== user?.username && (
+                  {msg.username !== user?.username && msg.username !== 'System' && (
                     <div className="fw-bold mb-1">{msg.username}</div>
                   )}
                   <div>{msg.content}</div>
-                  <div className={`small ${msg.username === user?.username ? 'text-white-50' : 'text-muted'} mt-1`}>
+                  <div className={`small ${msg.username === user?.username || msg.username === 'System' ? 'text-white-50' : 'text-muted'} mt-1`}>
                     {new Date(msg.timestamp).toLocaleTimeString()}
                   </div>
                 </div>
@@ -293,22 +269,24 @@ export default function HomePage() {
             <input
               type="text"
               className="form-control me-2"
-              placeholder="Type a message..."
+              placeholder={connectionStatus === 'connected' ? "Type a message..." : "Connecting..."}
               value={input}
               onChange={(e) => setInput(e.target.value)}
+              disabled={connectionStatus !== 'connected'}
             />
             <button 
               type="submit" 
               className="btn btn-primary"
-              disabled={loading || !input.trim()}
+              disabled={!input.trim() || connectionStatus !== 'connected'}
             >
-              {loading ? (
-                <span className="spinner-border spinner-border-sm" />
-              ) : (
-                'Send'
-              )}
+              Send
             </button>
           </form>
+          {connectionStatus !== 'connected' && (
+            <small className="text-muted">
+              Connect to the chat to send messages
+            </small>
+          )}
         </div>
       </div>
     </main>

@@ -1,28 +1,46 @@
 import http from 'http';
 import app from './app';
-import { env } from './config/env';
-import { setupWebSocketServer } from './config/ws';
 import { connectDB } from './config/db';
+import { setupWebSocketServer } from './config/ws';
+
+const BACKEND_PORT = process.env.BACKEND_PORT || 5000;
 
 async function startServer() {
   try {
     // Connect to database
     await connectDB();
     console.log('✅ Database connected');
-    
+
     // Create HTTP server
     const server = http.createServer(app);
-    
+
     // Setup WebSocket server
-    setupWebSocketServer(server);
+    const wsManager = setupWebSocketServer(server);
     console.log('✅ WebSocket server configured');
-    
-    // Start the server
-    server.listen(env.WS_PORT, () => {
-      console.log(`🚀 Server running on port ${env.WS_PORT}`);
-      console.log(`🌐 HTTP: http://localhost:${env.WS_PORT}`);
-      console.log(`📡 WebSocket: ws://localhost:${env.WS_PORT}`);
+
+    // Start server
+    server.listen(BACKEND_PORT, () => {
+      console.log(`🚀 Server running on port ${BACKEND_PORT}`);
+      console.log(`📡 WebSocket server ready on ws://localhost:${BACKEND_PORT}`);
     });
+
+    // Graceful shutdown
+    process.on('SIGTERM', () => {
+      console.log('🛑 SIGTERM received, shutting down gracefully');
+      server.close(() => {
+        console.log('✅ Server closed');
+        process.exit(0);
+      });
+    });
+
+    process.on('SIGINT', () => {
+      console.log('🛑 SIGINT received, shutting down gracefully');
+      server.close(() => {
+        console.log('✅ Server closed');
+        process.exit(0);
+      });
+    });
+
   } catch (error) {
     console.error('❌ Failed to start server:', error);
     process.exit(1);

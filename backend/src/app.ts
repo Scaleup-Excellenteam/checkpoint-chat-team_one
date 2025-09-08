@@ -1,30 +1,25 @@
 import express from 'express';
 import cors from 'cors';
-import serverRoutes from './routes/server_routes';
-import roomRouter from './routes/rooms.route';
+import { env } from './config/env';
 import errorHandler from './middleware/errorHandler';
+import serverRouter from './routes/server_routes';
 
 const app = express();
 
-// Fix CORS to allow multiple origins
+// CORS Middleware
 app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'http://localhost:5173', 
-    'http://localhost:4173'
-  ],
+  origin: env.CORS_ORIGIN,
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
+// Body Parsers
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Routes
-app.use('/', serverRoutes);
-app.use('/rooms', roomRouter);
+// API Routes
+app.use('/api', serverRouter);
 
-// Error handling middleware
+// Error Handler Middleware
 app.use(errorHandler);
 
 export default app;

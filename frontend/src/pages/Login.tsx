@@ -2,7 +2,6 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
-import { login, type LoginRequest } from "../lib/api";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -15,6 +14,7 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("Login form submitted");
     setError("");
 
     if (!email || !password) {
@@ -23,10 +23,12 @@ export default function LoginPage() {
     }
 
     try {
-      const response = await login({ email, password } as LoginRequest);
-      doLogin(email, password);
-      navigate("/", { replace: true }); // go to homepage after login
+      console.log("Calling doLogin...");
+      await doLogin(email, password);
+      console.log("Login successful, navigating...");
+      navigate("/", { replace: true });
     } catch (err) {
+      console.error("Login error:", err);
       setError(err instanceof Error ? err.message : "Login failed");
     }
   };

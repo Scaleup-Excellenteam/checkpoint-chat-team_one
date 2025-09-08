@@ -1,110 +1,176 @@
-import { clientEnv } from '../config/env';
+import { getWsUrl } from '../config/env';
 
-interface WebSocketCallbacks {
-  onOpen?: () => void;
-  onMessage?: (data: any) => void;
-  onError?: (event: Event) => void;
-  onClose?: (event: CloseEvent) => void;
-}
-
-let socket: WebSocket | null = null;
-let callbacks: WebSocketCallbacks = {};
+let ws: WebSocket | null = null;
+let messageHandlers: ((message: any) => void)[] = [];
+let isConnecting = false;
+let connectionAttempts = 0;
+const maxReconnectAttempts = 3;
 
 /**
- * Gets or creates a WebSocket connection with the provided callbacks
+ * Connect to WebSocket with username
  */
-export function getWebSocket(newCallbacks?: WebSocketCallbacks): WebSocket {
-  if (newCallbacks) {
-    callbacks = newCallbacks;
-  }
-  
-  // Always close existing connection before creating new one
-  if (socket) {
-    socket.close();
-    socket = null;
-  }
-  
-  const wsUrl = clientEnv.VITE_WS_URL;
-  console.log('🔌 Attempting to connect to WebSocket at:', wsUrl);
-  
-  try {
-    socket = new WebSocket(wsUrl);
+export const connectWebSocket = (
+  username: string,
+  onError?: (error: Event) => void,
+  onClose?: () => void
+): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    console.log("🔌 connectWebSocket called with username:", username);
     
-    socket.onopen = (event) => {
-      console.log('✅ WebSocket connection established');
-      console.log('Connection event:', event);
-      if (callbacks.onOpen) callbacks.onOpen();
-    };
-    
-    socket.onmessage = (event) => {
-      console.log('📨 WebSocket message received:', event.data);
-      try {
-        const data = JSON.parse(event.data);
-        console.log('📋 Parsed message:', data);
-        if (callbacks.onMessage) callbacks.onMessage(data);
-      } catch (error) {
-        console.error('❌ Error parsing WebSocket message:', error);
-      }
-    };
-    
-    socket.onerror = (event) => {
-      console.error('❌ WebSocket error:', event);
-      console.error('WebSocket state:', socket?.readyState);
-      if (callbacks.onError) callbacks.onError(event);
-    };
-    
-    socket.onclose = (event) => {
-      console.log('🔌 WebSocket connection closed:', event.code, event.reason);
-      console.log('Clean close:', event.wasClean);
-      if (callbacks.onClose) callbacks.onClose(event);
-    };
-  } catch (error) {
-    console.error('❌ Error creating WebSocket:', error);
-  }
-  
-  return socket as WebSocket;
-}
+    if (isConnecting) {
+      console.log("⏳ Already connecting, rejecting...");
+      reject(new Error("Already connecting"));
+      return;
+    }
+
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      console.log("✅ WebSocket already connected");
+      resolve();
+      return;
+    }
+
+    // Clean up any existing connection
+    if (ws) {
+      console.log("🧹 Cleaning up existing WebSocket");
+      ws.close();
+      ws = null;
+    }
+
+    try {
+      isConnecting = true;
+      connectionAttempts++;
+
+      const wsUrl = getWsUrl();
+      console.log("🔌 Connecting WebSocket to:", wsUrl, "attempt:", connectionAttempts);
+
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        console.log("✅ WebSocket OPEN");
+        isConnecting = false;
+        connectionAttempts = 0;
+
+        if (ws && username) {
+          const joinMessage = { type: 'join', username, room: 'general' };
+          console.log("📤 Sending JOIN:", joinMessage);
+          ws.send(JSON.stringify(joinMessage));
+        }
+        resolve();
+      };
+
+      ws.onclose = (event) => {
+        console.log("🔌 WebSocket CLOSE:", {
+          code: event.code,
+          reason: event.reason,
+          wasClean: event.wasClean,
+          readyState: ws?.readyState
+        });
+        isConnecting = false;
+        ws = null;
+        onClose?.();
+      };
+
+      ws.onerror = (error) => {
+        console.error("❌ WebSocket ERROR:", error, "readyState:", ws?.readyState);
+        isConnecting = false;
+        onError?.(error);
+        reject(new Error("WebSocket connection failed"));
+      };
+
+      ws.onmessage = (event) => {
+        console.log("📨 WebSocket MESSAGE:", event.data);
+        try {
+          const data = JSON.parse(event.data);
+          messageHandlers.forEach(h => h(data));
+        } catch (e) {
+          console.error("❌ Failed to parse message:", e);
+        }
+      };
+      
+    } catch (error) {
+      console.error("❌ Error creating WebSocket:", error);
+      isConnecting = false;
+      reject(error);
+    }
+  });
+};
 
 /**
- * Sends a message through the WebSocket
+ * Disconnect WebSocket
  */
-export function sendWebSocketMessage(message: any): void {
-  if (!socket) {
-    console.error('❌ Cannot send message - WebSocket is null');
-    return;
+export const disconnectWebSocket = () => {
+  console.log("🔌 Disconnecting WebSocket");
+  
+  if (ws) {
+    ws.close(1000, "Client disconnecting");
+    ws = null;
   }
   
-  if (socket.readyState !== WebSocket.OPEN) {
-    console.error('❌ Cannot send message - WebSocket is not open. State:', socket.readyState);
-    console.error('WebSocket states: CONNECTING=0, OPEN=1, CLOSING=2, CLOSED=3');
-    return;
+  isConnecting = false;
+  messageHandlers = [];
+  connectionAttempts = 0;
+};
+
+/**
+ * Send message through WebSocket
+ */
+export const sendWebSocketMessage = (message: any): boolean => {
+  console.log("📤 Attempting to send WebSocket message:", message);
+  
+  if (!ws) {
+    console.warn("❌ Cannot send message - WebSocket is null");
+    return false;
+  }
+  
+  if (ws.readyState !== WebSocket.OPEN) {
+    console.warn("❌ Cannot send message - WebSocket not open. State:", ws.readyState);
+    console.warn("WebSocket states: CONNECTING=0, OPEN=1, CLOSING=2, CLOSED=3");
+    return false;
   }
   
   try {
     const messageStr = JSON.stringify(message);
-    console.log('📤 Sending WebSocket message:', messageStr);
-    socket.send(messageStr);
+    console.log("📤 Sending WebSocket message string:", messageStr);
+    ws.send(messageStr);
+    console.log("✅ Message sent successfully");
+    return true;
   } catch (error) {
-    console.error('❌ Error sending WebSocket message:', error);
+    console.error("❌ Error sending WebSocket message:", error);
+    return false;
   }
-}
+};
 
 /**
- * Closes the WebSocket connection
+ * Add message handler
  */
-export function closeWebSocket(): void {
-  if (socket) {
-    console.log('🔌 Closing WebSocket connection');
-    if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
-      socket.close();
-    }
-    socket = null;
-  }
-}
+export const addMessageHandler = (handler: (message: any) => void) => {
+  console.log("➕ Adding message handler");
+  messageHandlers.push(handler);
+  console.log("📊 Total message handlers:", messageHandlers.length);
+};
 
 /**
- * Returns whether the WebSocket is currently connected
+ * Remove message handler
  */
-export function isConnected(): boolean {
-  return !!socket && socket.readyState === WebSocket.OPEN;
-}
+export const removeMessageHandler = (handler: (message: any) => void) => {
+  console.log("➖ Removing message handler");
+  const initialLength = messageHandlers.length;
+  messageHandlers = messageHandlers.filter(h => h !== handler);
+  console.log(`📊 Removed ${initialLength - messageHandlers.length} handlers. Total remaining:`, messageHandlers.length);
+};
+
+/**
+ * Get WebSocket connection state
+ */
+export const getWebSocketState = () => {
+  return ws ? ws.readyState : WebSocket.CLOSED;
+};
+
+/**
+ * Check if WebSocket is connected
+ */
+export const isConnected = (): boolean => {
+  const connected = !!ws && ws.readyState === WebSocket.OPEN;
+  console.log("🔍 WebSocket connection check:", connected, "State:", ws?.readyState);
+  return connected;
+};
