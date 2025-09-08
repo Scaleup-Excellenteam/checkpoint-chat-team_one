@@ -4,7 +4,7 @@ let ws: WebSocket | null = null;
 let messageHandlers: ((message: any) => void)[] = [];
 let isConnecting = false;
 let connectionAttempts = 0;
-const maxReconnectAttempts = 3;
+// const maxReconnectAttempts = 3;
 
 /**
  * Connect to WebSocket with username
