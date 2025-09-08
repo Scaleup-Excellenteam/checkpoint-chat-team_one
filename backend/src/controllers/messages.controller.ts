@@ -1,37 +1,31 @@
 import type { Request, Response } from 'express';
 import Message from '../models/message.model';
 
-/**
- * Get all messages for a specific room
- */
+// Get all messages for a specific room (by roomName)
 export const getMessages = async (req: Request, res: Response) => {
   try {
-    const { roomId } = req.params;
-    const messages = await Message.find({ room: roomId }).sort({ createdAt: 1 });
+    const { roomName } = req.params;
+    const messages = await Message.find({ room: roomName }).sort({ createdAt: 1 });
     res.status(200).json(messages);
   } catch (error) {
     res.status(500).json({ message: 'Failed to fetch messages', error });
   }
 };
 
-/**
- * Create a new message
- */
+// Create a new message in a specific room (by roomName)
 export const createMessage = async (req: Request, res: Response) => {
   try {
-    const { room, user, content } = req.body;
-    
-    if (!room || !user || !content) {
+    const { user, content } = req.body;
+    const { roomName } = req.params;
+    if (!roomName || !user || !content) {
       return res.status(400).json({ message: 'Room, user, and content are required' });
     }
-    
     const newMessage = new Message({
-      room,
+      room: roomName,
       user,
       content,
       createdAt: new Date()
     });
-    
     const savedMessage = await newMessage.save();
     res.status(201).json(savedMessage);
   } catch (error) {

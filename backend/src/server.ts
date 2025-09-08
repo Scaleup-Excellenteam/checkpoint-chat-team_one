@@ -19,10 +19,9 @@ async function startServer() {
     console.log('✅ WebSocket server configured');
 
     // Start server
-    server.listen(Number(BACKEND_PORT), '0.0.0.0', () => {
+    server.listen(BACKEND_PORT, () => {
       console.log(`🚀 Server running on port ${BACKEND_PORT}`);
-      console.log(`📡 WebSocket server ready on all network interfaces`);
-      console.log(`💻 Server accessible from other devices on your network`);
+      console.log(`📡 WebSocket server ready on ws://localhost:${BACKEND_PORT}`);
     });
 
     // Graceful shutdown

@@ -1,4 +1,4 @@
-FROM node:18
+FROM node:latest
 
 WORKDIR /app
 
@@ -8,6 +8,9 @@ RUN npm install
 
 # Copy the rest of your app's source code
 COPY . .
+
+# Build your app
+RUN npm run build
 
 # Expose the port your app runs on
 EXPOSE ${FRONT_END_PORT}

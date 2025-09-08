@@ -1,16 +1,21 @@
-FROM node:18
+FROM node:latest
 
 WORKDIR /app
 
-# Install dependencies
+# Copy package files
 COPY package*.json ./
+
+# Install dependencies (including dev for later TS compilation)
 RUN npm install
 
-# Copy application source code
+# Copy source
 COPY . .
 
-# Expose the port your backend runs on (e.g., 5000)
+# Build the project
+RUN npm run build && ls -l dist/src && test -f dist/src/server.js
+
+# ENV NODE_ENV=production
 EXPOSE ${BACK_END_PORT}
 
-# Command to start the server
+# Use the simple JS starter instead of compiled TS
 CMD ["npm", "start"]

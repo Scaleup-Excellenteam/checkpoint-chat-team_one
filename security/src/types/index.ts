@@ -18,3 +18,10 @@ export interface User {
     email: string;
     // Add other user properties as needed
 }
+
+
+export interface UrlScanResult {
+    isSafe: boolean;
+    category: string;
+    score: number;
+}

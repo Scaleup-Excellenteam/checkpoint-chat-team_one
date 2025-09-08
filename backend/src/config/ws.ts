@@ -1,6 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { IncomingMessage } from 'http';
 import { Server } from 'http';
+import Message from '../models/message.model';
 
 interface User {
   id: string;
@@ -81,7 +82,7 @@ class WebSocketManager {
       });
 
       // Set up error handler
-      ws.on('error', (error) => {
+      ws.on('error', (error: Error) => {
         console.error('❌ WebSocket error:', error);
       });
     });
@@ -168,9 +169,8 @@ class WebSocketManager {
     console.log(`📊 Room ${room} now has ${this.rooms.get(room)?.size} users`);
   }
 
-  private handleChatMessage(ws: WebSocket, message: MessageData) {
+  private async handleChatMessage(ws: WebSocket, message: MessageData) {
     const user = this.users.get(ws);
-    
     if (!user) {
       this.sendToClient(ws, {
         type: 'error',
@@ -189,18 +189,37 @@ class WebSocketManager {
 
     console.log(`💬 Chat message from ${user.username} in ${user.room}:`, message.content);
 
-    // Create message object
+    // Save message to database
+    let savedMessage = null;
+    try {
+      const newMessage = new Message({
+        room: user.room,
+        user: user.username,
+        content: message.content.trim(),
+        createdAt: new Date(),
+      });
+      savedMessage = await newMessage.save();
+    } catch (err) {
+      console.error('❌ Failed to save message to DB:', err);
+      this.sendToClient(ws, {
+        type: 'error',
+        content: 'Failed to save message to database'
+      });
+      return;
+    }
+
+    // Create message object for broadcast
     const chatMessage: MessageData = {
       type: 'message',
-      content: message.content.trim(),
+      content: savedMessage?.content || message.content.trim(),
       username: user.username,
       room: user.room,
-      timestamp: new Date().toISOString()
+      timestamp: savedMessage?.createdAt?.toISOString?.() || new Date().toISOString(),
+      // Optionally add _id: savedMessage?._id
     };
 
     // Broadcast to all users in the room (including sender)
     this.broadcastToRoom(user.room, chatMessage);
-    
     console.log(`📤 Message broadcasted to room ${user.room}`);
   }
 

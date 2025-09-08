@@ -10,11 +10,11 @@ export const getAllRoomsService = async (): Promise<IRoom[]> => {
 };
 
 /**
- * Get a single room by its ID.
- * @param roomId - The ID of the room.
+ * Get a single room by its name.
+ * @param roomName - The name of the room.
  */
-export const getRoomByIdService = async (roomId: string): Promise<IRoom | null> => {
-  return Room.findById(roomId);
+export const getRoomByNameService = async (roomName: string): Promise<IRoom | null> => {
+  return Room.findOne({ name: roomName });
 };
 
 /**

@@ -40,10 +40,10 @@ export const deleteRoom = async (req: Request, res: Response, next: NextFunction
   }
 };
 
-export const getRoomById = async (req: Request, res: Response, next: NextFunction) => {
+export const getRoomByName = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
-    const room = await roomServices.getRoomByIdService(id);
+    const { roomName } = req.params;
+    const room = await roomServices.getRoomByNameService(roomName);
     if (!room) {
         return handleResponse(res, 404, 'Room not found');
     }
