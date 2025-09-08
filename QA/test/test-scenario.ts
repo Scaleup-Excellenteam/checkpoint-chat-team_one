@@ -1,10 +1,16 @@
 import { TestAgent, TestRunner } from './test-setup';
 import { faker } from '@faker-js/faker';
 
+
+/*
+--------------------------------------------------------------------------------
+old test method where latin conversation was simulated between agents do not use
+--------------------------------------------------------------------------------
+*/
 // --- Test Configuration ---
-const NUMBER_OF_AGENTS = 3;
-const ROOM_NAME = "automated-test-room";
-const MESSAGES_PER_AGENT = 2;
+const NUMBER_OF_AGENTS = 20;
+const ROOM_NAME = "test-room1221";
+const MESSAGES_PER_AGENT = 3;
 
 /**
  * A simple delay utility to make the conversation flow more realistic.
