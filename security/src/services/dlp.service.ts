@@ -26,7 +26,19 @@ export function containsSensitiveData(text: unknown): boolean {
 }
 
 export function basicSanitize(text: unknown): string {
-  if (typeof text !== "string") return "";
+  if (typeof text !== "string") {
+    return "";
+  }
   // Strip HTML tags to reduce XSS risk if you ever render this content
   return text.replace(/<[^>]*>/g, "").trim();
+}
+
+// probabilitic check if text looks like (baking recipe)
+export function looksLikeRecipe(text: unknown): boolean {
+  if (typeof text !== "string") return false;
+  const normalized = text.normalize("NFKC");
+  // Check for keywords commonly found in baking recipes
+  const bakingKeywords = /bake|oven|temperature|mix|dough|flour|sugar|butter|eggs|vanilla|chocolate/i; // add more as needed
+  // Simple keyword-based check
+  return bakingKeywords.test(normalized);
 }
