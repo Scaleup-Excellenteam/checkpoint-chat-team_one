@@ -1,4 +1,4 @@
-version: '3.8'
+# version key is obsolete; removing it
 
 services:
   frontend:
@@ -10,11 +10,13 @@ services:
     environment:
       # The frontend in the browser will call the backend exposed on host port 5000
       - VITE_API_URL=http://localhost:${BACK_END_PORT:-5000}/api
+      - VITE_WS_URL=ws://localhost:${SECURITY_PORT:-8090}
     ports:
       # Map host port 3000 to the frontend container's port 3000
       - "${FRONT_END_PORT:-3000}:3000"
     depends_on:
       - backend
+      - security
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -37,6 +39,25 @@ services:
     volumes:
       - ./backend:/app
       - /app/node_modules
+      
+
+  security:
+    build:
+      context: ./security
+    container_name: security-gateway
+    environment:
+      - NODE_ENV=production
+      - PORT=8090
+      - DOWNSTREAM_WS_URL=ws://backend:8080
+      - ALLOWED_WS_ORIGINS=http://localhost:${FRONT_END_PORT:-3000}
+      - MAX_MSG_BYTES=4096
+      - DLP_MODE=report
+      - DLP_BLOCK_THRESHOLD=80
+    ports:
+      - "${SECURITY_PORT:-8090}:8090"
+    depends_on:
+      - backend
+    restart: unless-stopped
 
   mongodb:
     image: mongo:latest

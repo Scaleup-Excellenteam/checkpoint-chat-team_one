@@ -1,5 +1,11 @@
 import { getWsUrl } from '../config/env';
 
+const WS_URL = import.meta.env.VITE_WS_URL || `ws://${window.location.hostname}:8090`;
+export function createWs() {
+  const ws = new WebSocket(WS_URL);
+  return ws;
+}
+
 let ws: WebSocket | null = null;
 let messageHandlers: ((message: any) => void)[] = [];
 let isConnecting = false;
