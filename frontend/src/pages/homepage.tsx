@@ -287,6 +287,17 @@ export default function HomePage() {
     }
   };
 
+  // Add this function to handle room deletion
+  const onDeleteRoom = async (roomId: string) => {
+    if (!window.confirm("Are you sure you want to delete this room?")) return;
+    try {
+      await RoomsAPI.delete(roomId);
+      setRooms((prev) => prev.filter((room) => room._id !== roomId));
+    } catch (err) {
+      setError("Failed to delete room");
+    }
+  };
+
   // Debug logs
   console.log("🔍 HomePage - conn:", connectionStatus, "room:", currentRoom, "msgs:", messages.length);
 
@@ -353,12 +364,21 @@ export default function HomePage() {
                         <span className="fw-medium">{r.name}</span>
                         <small className="text-muted">{r._id}</small>
                       </div>
-                      <button
-                        className="btn btn-sm btn-outline-success"
-                        onClick={() => handleJoinRoom(r)}
-                      >
-                        Join
-                      </button>
+                      <div className="d-flex gap-2">
+                        <button
+                          className="btn btn-sm btn-outline-success"
+                          onClick={() => handleJoinRoom(r)}
+                        >
+                          Join
+                        </button>
+                        <button
+                          onClick={() => onDeleteRoom(r._id)}
+                          style={{ color: "red", border: "1px solid red", background: "white" }}
+                          className="btn btn-sm"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </li>
                   ))}
                 </ul>

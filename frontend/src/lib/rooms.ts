@@ -29,5 +29,10 @@ export const RoomsAPI = {
   update: (roomName: string, data: Partial<Room>, username: string) =>
     http<Room>(`/${roomName}`, { method: "PUT", body: JSON.stringify({ ...data, username }) }),
   delete: (roomName: string, username: string) =>
-    http<{ deleted: boolean }>(`/${roomName}`, { method: "DELETE", body: JSON.stringify({ username }) }),
+    fetch(`${ROOMS_URL}/${roomName}`, {
+      method: "DELETE",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username }),
+    }),
 };
