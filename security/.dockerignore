@@ -1,5 +1,6 @@
 # This file specifies files and directories to be ignored by Docker when building the image.
 node_modules/
+package-lock.json
 dist/
 *.log
 .env
