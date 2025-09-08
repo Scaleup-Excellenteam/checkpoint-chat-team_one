@@ -8,7 +8,7 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 // Define environment schema with defaults where possible
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  PORT: z.string().default('5000'),
+  PORT: z.string().default('5001'),
   MONGO_URI: z.string().default('mongodb://localhost:27017/checkpoint-chat'),
   JWT_SECRET: z.string().default('supersecretkey123456789'), // Default for development only
   JWT_EXPIRES_IN: z.string().default('7d'),

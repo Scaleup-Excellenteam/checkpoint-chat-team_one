@@ -3,7 +3,7 @@ import app from './app';
 import { connectDB } from './config/db';
 import { setupWebSocketServer } from './config/ws';
 
-const BACKEND_PORT = process.env.BACKEND_PORT || 5000;
+const BACKEND_PORT = process.env.BACKEND_PORT || 5001;
 
 async function startServer() {
   try {

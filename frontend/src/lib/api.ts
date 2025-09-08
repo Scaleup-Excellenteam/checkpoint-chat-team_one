@@ -23,7 +23,7 @@ export async function login(req: LoginRequest): Promise<LoginResponse> {
 }
 
 export async function loginApi(identifier: string, password: string) {
-  const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/auth/login`, {
+  const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
